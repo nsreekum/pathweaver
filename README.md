@@ -33,7 +33,7 @@ The framework allows you to define an environment from geometric data, analyze t
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/nsreekum/pathweaver.git](https://www.google.com/search?q=https://github.com/nsreekum/pathweaver.git)
+    git clone https://github.com/nsreekum/pathweaver.git
     cd pathweaver
     ```
 
