@@ -2,7 +2,6 @@ venv:
 	python3 -m venv .venv
 
 activate:
-	cd .venv
 	source .venv/bin/activate
 
 deactivate:
