@@ -1,0 +1,13 @@
+pandas>=1.3
+shapely>=1.8
+python-louvain
+numpy>=1.19
+
+[dev]
+pytest>=6.0
+ruff
+mypy
+pathweaver[visualization]
+
+[visualization]
+matplotlib>=3.4

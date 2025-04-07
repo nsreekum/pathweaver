@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathweaver"
+version = "0.1.0" # Start with an initial version
+description = "A simulator for multi-user virtual object access."
+readme = "README.md"
+requires-python = ">=3.8" # Specify your minimum Python version
+license = { file = "LICENSE" } # Make sure LICENSE file exists
+authors = [
+  { name="Nikhil Sreekumar", email="sreek012@umn.edu" },
+]
+# Add keywords, classifiers etc. as needed: https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+
+dependencies = [
+    "pandas>=1.3",      # For reading CSV data
+    "shapely>=1.8",     # For geometric objects and operations
+    "python-louvain",   # For Louvain community detection
+    "numpy>=1.19",      # For vector math in placement
+]
+
+[project.optional-dependencies]
+visualization = [
+    "matplotlib>=3.4",  # For plotting
+]
+dev = [
+    "pytest>=6.0",      # For running tests
+    "ruff",             # For linting and formatting (replaces black, flake8, isort)
+    "mypy",             # For static type checking
+    # Add visualization deps here too if needed for dev/examples
+    "pathweaver[visualization]",
+]
+
+# [project.urls] # Optional: Add links
+# "Homepage" = "https://github.com/your_username/pathweaver"
+# "Bug Tracker" = "https://github.com/your_username/pathweaver/issues"
+
+# --- Tool Configurations (Example using Ruff) ---
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I", "UP", "PL", "PTH"] # Select rule codes (Example set)
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["pathweaver"]
+
+# Add other tool configurations like [tool.pytest.ini_options], [tool.mypy] as needed
