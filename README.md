@@ -14,9 +14,8 @@ The framework allows you to define an environment from geometric data, analyze t
 * **Pathfinding:**
     * Generate valid random start/end points within the environment.
     * Implement obstacle-avoiding pathfinding between two points using:
-        * **Visibility Graphs:** Calculates the geometrically shortest path (tends to hug corners). Optimized to build graph once per scenario.
         * **Voronoi-based Aisle Graphs:** Approximates centerlines between obstacles for more "aisle-like" paths.
-* **Shopping Simulation:** Generate full, multi-segment shopping paths for users based on (synthetic) transactions, ordered by proximity, using either Visibility or Aisle Graph pathfinding.
+* **Shopping Simulation:** Generate full, multi-segment shopping paths for users based on (synthetic) transactions, ordered by proximity, using Aisle Graph pathfinding.
 * **Visualization:** Example scripts provided to visualize maps, obstacles, item placements, and generated user paths using Matplotlib.
 * **Modular Structure:** Organized into sub-packages for environment representation, analysis, and path generation.
 
