@@ -24,7 +24,7 @@ The framework allows you to define an environment from geometric data, analyze t
 ### Prerequisites
 
 * Python (>= 3.8 recommended)
-* Standard C/C++ build tools (required for some dependencies like `triangle`)
+* Standard C/C++ build tools
     * Ubuntu/Debian: `sudo apt-get install build-essential python3-dev`
     * macOS: Xcode Command Line Tools (`xcode-select --install`)
     * Windows: Microsoft C++ Build Tools (available via Visual Studio Installer)
@@ -53,7 +53,7 @@ The framework allows you to define an environment from geometric data, analyze t
         ```bash
         pip install -e .
         ```
-        *(You may need to install optional dependencies like `matplotlib`, `scipy`, `mlxtend`, `python-louvain`, `triangle` manually if needed later)*
+        *(You may need to install optional dependencies like `matplotlib`, `scipy`, `mlxtend`, `python-louvain` manually if needed later)*
 
 ### Key Dependencies
 
@@ -64,7 +64,6 @@ The framework allows you to define an environment from geometric data, analyze t
 * `scipy`: Spatial algorithms (Voronoi diagrams)
 * `mlxtend`: Frequent itemset mining (Apriori/FP-Growth)
 * `python-louvain`: Louvain community detection
-* `triangle`: Constrained Delaunay triangulation (for potential NavMesh implementation - **Note: Installation can be complex**)
 * `matplotlib`: Plotting for examples/visualization
 
 *(See `pyproject.toml` for specific version requirements)*
