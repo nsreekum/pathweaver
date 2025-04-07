@@ -7,7 +7,7 @@ import pandas as pd
 import networkx as nx
 import itertools
 import community as community_louvain # Requires: pip install python-louvain
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import List, Set, Any, Optional, Union
 
 # --- Add mlxtend imports ---
@@ -155,104 +155,245 @@ def generate_item_categories_from_transactions(
     print(f"Extracted {len(category_list)} item categories.")
     return category_list
 
+# def generate_synthetic_transactions(
+#     original_transactions: List[Set[str]],
+#     num_new_transactions: int,
+#     min_support: float = 0.01, # Min support for frequent itemsets
+#     use_fpgrowth: bool = True, # FP-Growth is often faster than Apriori
+#     max_len: Optional[int] = None # Optional: max length of frequent itemsets considered
+#     ) -> List[Set[str]]:
+#     """
+#     Generates synthetic transactions based on frequent itemsets found in
+#     original transactions.
+
+#     Args:
+#         original_transactions: A list of sets, where each set represents an
+#                                original transaction.
+#         num_new_transactions: The number of synthetic transactions to generate.
+#         min_support: The minimum support threshold for finding frequent itemsets
+#                      (as a fraction of total transactions).
+#         use_fpgrowth: If True, use FP-Growth algorithm; otherwise use Apriori.
+#         max_len: Maximum length of frequent itemsets to consider.
+
+#     Returns:
+#         A list of sets, where each set represents a generated synthetic transaction.
+#         Returns an empty list if processing fails or no frequent itemsets found.
+#     """
+#     print(f"\nStarting synthetic transaction generation ({num_new_transactions} requested)...")
+#     if not original_transactions:
+#         print("Error: No original transactions provided.")
+#         return []
+
+#     # --- 1. Find Frequent Itemsets ---
+#     print(f"Finding frequent itemsets (min_support={min_support})...")
+#     try:
+#         # Convert transactions to the one-hot encoded format required by mlxtend
+#         te = TransactionEncoder()
+#         te_ary = te.fit(original_transactions).transform(original_transactions)
+#         df_onehot = pd.DataFrame(te_ary, columns=te.columns_)
+
+#         # Mine frequent itemsets
+#         if use_fpgrowth:
+#             frequent_itemsets_df = fpgrowth(df_onehot, min_support=min_support, use_colnames=True, max_len=max_len)
+#         else:
+#             print("Invalid association rule mining algorithm option")
+#             sys.exit(-1)
+
+#         if frequent_itemsets_df.empty:
+#             print("Warning: No frequent itemsets found with the given minimum support.")
+#             # Fallback: maybe generate based on individual item frequencies? Or return empty.
+#             # Let's return empty for now, user might need to lower min_support.
+#             return []
+
+#         print(f"Found {len(frequent_itemsets_df)} frequent itemsets.")
+#         # Ensure 'itemsets' column contains sets (mlxtend uses frozenset)
+#         frequent_itemsets_df['itemsets'] = frequent_itemsets_df['itemsets'].apply(set)
+
+#     except Exception as e:
+#         print(f"Error during frequent itemset mining: {e}")
+#         return []
+
+
+#     # --- 2. Generate Transactions by Sampling Itemsets ---
+#     print("Generating new transactions by sampling frequent itemsets...")
+#     synthetic_transactions: List[Set[str]] = []
+
+#     # Use support values as weights for sampling
+#     # Ensure weights sum to 1 for np.random.choice
+#     weights = frequent_itemsets_df['support'].values
+#     if weights.sum() <= 0:
+#          print("Warning: Sum of support values is zero, cannot sample.")
+#          return [] # Or handle differently
+#     probabilities = weights / weights.sum()
+
+#     itemset_indices = frequent_itemsets_df.index
+
+#     for i in range(num_new_transactions):
+#         try:
+#             # Choose a frequent itemset based on its support (probability)
+#             chosen_index = np.random.choice(itemset_indices, p=probabilities)
+#             base_itemset = frequent_itemsets_df.loc[chosen_index, 'itemsets']
+
+#             # Create the new transaction (start with the sampled frequent itemset)
+#             new_transaction = set(base_itemset) # Make a copy
+
+#             # --- Optional Refinements (Consider adding later if needed) ---
+#             # 1. Add Noise: Randomly add a few more items based on overall frequency,
+#             #    but check they don't contradict strong negative associations if known.
+#             # 2. Control Size: Try to match the *distribution* of transaction sizes
+#             #    from the original data (e.g., sample a size first, then build).
+#             # ---------------------------------------------------------------
+
+#             synthetic_transactions.append(new_transaction)
+#             if (i + 1) % 100 == 0: # Print progress periodically
+#                  print(f"  Generated {i + 1}/{num_new_transactions} transactions...")
+
+#         except Exception as e:
+#              print(f"Error during sampling for transaction {i+1}: {e}")
+#              # Decide whether to stop or continue
+#              continue
+
+
+#     print(f"Finished generating {len(synthetic_transactions)} synthetic transactions.")
+#     return synthetic_transactions
+
 def generate_synthetic_transactions(
     original_transactions: List[Set[str]],
     num_new_transactions: int,
-    min_support: float = 0.01, # Min support for frequent itemsets
-    use_fpgrowth: bool = True, # FP-Growth is often faster than Apriori
-    max_len: Optional[int] = None # Optional: max length of frequent itemsets considered
+    min_support: float = 0.01,
+    use_fpgrowth: bool = True,
+    max_len: Optional[int] = None,
+    max_noise_add_attempts: int = 10 # Attempts to add each noise item
     ) -> List[Set[str]]:
     """
-    Generates synthetic transactions based on frequent itemsets found in
-    original transactions.
+    Generates synthetic transactions based on frequent itemsets, attempting
+    to match the size distribution of the original transactions and adding
+    noise items based on frequency.
 
     Args:
-        original_transactions: A list of sets, where each set represents an
-                               original transaction.
-        num_new_transactions: The number of synthetic transactions to generate.
-        min_support: The minimum support threshold for finding frequent itemsets
-                     (as a fraction of total transactions).
+        original_transactions: List of sets representing original transactions.
+        num_new_transactions: Number of synthetic transactions to generate.
+        min_support: Minimum support threshold for frequent itemsets.
         use_fpgrowth: If True, use FP-Growth algorithm; otherwise use Apriori.
         max_len: Maximum length of frequent itemsets to consider.
+        max_noise_add_attempts: Max attempts to find a suitable unique noise item.
 
     Returns:
-        A list of sets, where each set represents a generated synthetic transaction.
-        Returns an empty list if processing fails or no frequent itemsets found.
+        List of sets representing generated synthetic transactions.
     """
-    print(f"\nStarting synthetic transaction generation ({num_new_transactions} requested)...")
+    print(f"\nStarting enhanced synthetic transaction generation ({num_new_transactions} requested)...")
     if not original_transactions:
-        print("Error: No original transactions provided.")
-        return []
+        print("Error: No original transactions provided."); return []
 
-    # --- 1. Find Frequent Itemsets ---
+    # --- 1. Analyze Original Data ---
+    print("Analyzing original transaction statistics...")
+    # Calculate item frequencies
+    all_items_flat = [item for trans in original_transactions for item in trans]
+    if not all_items_flat:
+         print("Error: No items found in original transactions."); return []
+    item_counts = Counter(all_items_flat)
+    total_items_occurrences = sum(item_counts.values())
+    item_frequencies = {item: count / total_items_occurrences for item, count in item_counts.items()}
+    items_list = list(item_frequencies.keys())
+    item_probabilities = list(item_frequencies.values())
+
+    # Calculate transaction size distribution
+    transaction_sizes = [len(t) for t in original_transactions if t] # Ignore empty ones
+    if not transaction_sizes:
+         print("Error: No valid transaction sizes found."); return []
+    size_counts = Counter(transaction_sizes)
+    total_transactions = len(transaction_sizes)
+    possible_sizes = list(size_counts.keys())
+    size_probabilities = [count / total_transactions for count in size_counts.values()]
+    print(f"  Avg size: {np.mean(transaction_sizes):.2f}, Item Frequencies & Size Dist calculated.")
+
+    # --- 2. Find Frequent Itemsets ---
     print(f"Finding frequent itemsets (min_support={min_support})...")
     try:
-        # Convert transactions to the one-hot encoded format required by mlxtend
         te = TransactionEncoder()
         te_ary = te.fit(original_transactions).transform(original_transactions)
         df_onehot = pd.DataFrame(te_ary, columns=te.columns_)
 
-        # Mine frequent itemsets
         if use_fpgrowth:
             frequent_itemsets_df = fpgrowth(df_onehot, min_support=min_support, use_colnames=True, max_len=max_len)
         else:
-            print("Invalid association rule mining algorithm option")
-            sys.exit(-1)
+            frequent_itemsets_df = apriori(df_onehot, min_support=min_support, use_colnames=True, max_len=max_len)
 
         if frequent_itemsets_df.empty:
-            print("Warning: No frequent itemsets found with the given minimum support.")
-            # Fallback: maybe generate based on individual item frequencies? Or return empty.
-            # Let's return empty for now, user might need to lower min_support.
+            print("Warning: No frequent itemsets found. Consider lowering min_support.")
+            # Fallback: Generate purely based on size and item frequency?
+            # For now, return empty or potentially raise error.
             return []
 
+        frequent_itemsets_df['length'] = frequent_itemsets_df['itemsets'].apply(len)
+        frequent_itemsets_df['itemsets'] = frequent_itemsets_df['itemsets'].apply(set) # Ensure sets
         print(f"Found {len(frequent_itemsets_df)} frequent itemsets.")
-        # Ensure 'itemsets' column contains sets (mlxtend uses frozenset)
-        frequent_itemsets_df['itemsets'] = frequent_itemsets_df['itemsets'].apply(set)
 
     except Exception as e:
-        print(f"Error during frequent itemset mining: {e}")
-        return []
+        print(f"Error during frequent itemset mining: {e}"); return []
 
-
-    # --- 2. Generate Transactions by Sampling Itemsets ---
-    print("Generating new transactions by sampling frequent itemsets...")
+    # --- 3. Generate Transactions Loop ---
+    print("Generating new transactions...")
     synthetic_transactions: List[Set[str]] = []
+    generation_attempts = 0
+    max_total_attempts = num_new_transactions * 5 # Allow some retries if sampling fails
 
-    # Use support values as weights for sampling
-    # Ensure weights sum to 1 for np.random.choice
-    weights = frequent_itemsets_df['support'].values
-    if weights.sum() <= 0:
-         print("Warning: Sum of support values is zero, cannot sample.")
-         return [] # Or handle differently
-    probabilities = weights / weights.sum()
-
-    itemset_indices = frequent_itemsets_df.index
-
-    for i in range(num_new_transactions):
+    while len(synthetic_transactions) < num_new_transactions and generation_attempts < max_total_attempts:
+        generation_attempts += 1
         try:
-            # Choose a frequent itemset based on its support (probability)
-            chosen_index = np.random.choice(itemset_indices, p=probabilities)
-            base_itemset = frequent_itemsets_df.loc[chosen_index, 'itemsets']
+            # --- a) Sample Target Size ---
+            target_size = np.random.choice(possible_sizes, p=size_probabilities)
 
-            # Create the new transaction (start with the sampled frequent itemset)
-            new_transaction = set(base_itemset) # Make a copy
+            # --- b) Sample Suitable Base Itemset ---
+            # Filter itemsets smaller or equal to target size
+            suitable_itemsets = frequent_itemsets_df[frequent_itemsets_df['length'] <= target_size]
 
-            # --- Optional Refinements (Consider adding later if needed) ---
-            # 1. Add Noise: Randomly add a few more items based on overall frequency,
-            #    but check they don't contradict strong negative associations if known.
-            # 2. Control Size: Try to match the *distribution* of transaction sizes
-            #    from the original data (e.g., sample a size first, then build).
-            # ---------------------------------------------------------------
+            if suitable_itemsets.empty:
+                 # If no suitable frequent itemsets (e.g., target size is too small)
+                 # Option 1: Generate purely randomly based on frequency up to target_size
+                 # Option 2: Skip this attempt and try again
+                 print(f"  Warning: No frequent itemset found <= target size {target_size}. Skipping attempt {generation_attempts}.")
+                 continue # Try again with a different target size
+
+            # Sample from suitable itemsets, weighted by support
+            weights = suitable_itemsets['support'].values
+            if weights.sum() <= 0 : continue # Should not happen if not empty
+            probabilities = weights / weights.sum()
+            chosen_index = np.random.choice(suitable_itemsets.index, p=probabilities)
+            base_itemset = suitable_itemsets.loc[chosen_index, 'itemsets']
+
+            new_transaction = set(base_itemset) # Start with a copy
+
+            # --- c) Add Noise Items if needed ---
+            num_items_to_add = target_size - len(new_transaction)
+            items_added_count = 0
+            noise_attempts = 0
+
+            while items_added_count < num_items_to_add and noise_attempts < max_noise_add_attempts * num_items_to_add :
+                noise_attempts += 1
+                # Sample noise item based on overall frequency
+                noise_item = np.random.choice(items_list, p=item_probabilities)
+
+                if noise_item not in new_transaction:
+                    # Optional: Add more sophisticated checks here later if needed
+                    # (e.g., check against negative associations)
+                    new_transaction.add(noise_item)
+                    items_added_count += 1
+
+            if items_added_count < num_items_to_add:
+                 print(f"  Warning: Could only add {items_added_count}/{num_items_to_add} noise items for attempt {generation_attempts} (target size {target_size}).")
 
             synthetic_transactions.append(new_transaction)
-            if (i + 1) % 100 == 0: # Print progress periodically
-                 print(f"  Generated {i + 1}/{num_new_transactions} transactions...")
+
+            if len(synthetic_transactions) % 100 == 0:
+                 print(f"  Generated {len(synthetic_transactions)}/{num_new_transactions} transactions...")
 
         except Exception as e:
-             print(f"Error during sampling for transaction {i+1}: {e}")
+             print(f"Error during generation for attempt {generation_attempts}: {e}")
              # Decide whether to stop or continue
-             continue
 
+    if len(synthetic_transactions) < num_new_transactions:
+         print(f"Warning: Only generated {len(synthetic_transactions)} out of {num_new_transactions} requested transactions after {max_total_attempts} attempts.")
 
     print(f"Finished generating {len(synthetic_transactions)} synthetic transactions.")
     return synthetic_transactions

@@ -33,7 +33,7 @@ COLLIDER_FILE_PATH = os.path.join(os.path.dirname(__file__), 'data', 'colliders.
 TRANSACTION_FILE_PATH = os.path.join(os.path.dirname(__file__), 'data', 'sample_transactions.csv')
 MERGE_DISTANCE_THRESHOLD = 5.0
 
-NUM_USERS_TO_SIMULATE = 5
+NUM_USERS_TO_SIMULATE = 50
 NUM_SYNTHETIC_TRANSACTIONS = 50
 # ... other configs ...
 MAP_PADDING = 15.0 # Increased padding for boundary definition
@@ -89,7 +89,8 @@ if __name__ == "__main__":
 
         # --- 4. Generate Synthetic Transactions ---
         print(f"\n[4/6] Generating {NUM_SYNTHETIC_TRANSACTIONS} synthetic transactions...")
-        synthetic_transactions = generate_synthetic_transactions(original_transactions, NUM_SYNTHETIC_TRANSACTIONS, 0.10)
+        MIN_SUPPORT_THRESHOLD = 0.05 # Adjust based on your data (start higher, then lower if needed)
+        synthetic_transactions = generate_synthetic_transactions(original_transactions, NUM_SYNTHETIC_TRANSACTIONS, MIN_SUPPORT_THRESHOLD)
         if not synthetic_transactions: sys.exit("Failed to generate transactions.")
 
         # --- 5. Generate Full Shopping Paths using AISLE GRAPH ---

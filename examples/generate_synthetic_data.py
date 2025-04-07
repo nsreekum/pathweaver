@@ -25,7 +25,7 @@ except ImportError as e:
 # --- Configuration ---
 ORIGINAL_TRANSACTION_FILE_PATH = os.path.join(os.path.dirname(__file__), 'data', 'sample_transactions.csv')
 NUM_SYNTHETIC_TO_GENERATE = 100 # How many new transactions to create
-MIN_SUPPORT_THRESHOLD = 0.10 # Adjust based on your data (start higher, then lower if needed)
+MIN_SUPPORT_THRESHOLD = 0.05 # Adjust based on your data (start higher, then lower if needed)
 
 # --- Helper to load original transactions ---
 def load_original_transactions(file_path):
