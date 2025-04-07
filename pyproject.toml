@@ -19,6 +19,8 @@ dependencies = [
     "shapely>=1.8",     # For geometric objects and operations
     "python-louvain",   # For Louvain community detection
     "numpy>=1.19",      # For vector math in placement
+    "mlxtend>=0.18",    # Add mlxtend
+    "scipy>=1.6",       # Add scipy
 ]
 
 [project.optional-dependencies]
