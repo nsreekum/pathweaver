@@ -1,3 +1,4 @@
+README.md
 pyproject.toml
 src/pathweaver/__init__.py
 src/pathweaver.egg-info/PKG-INFO
@@ -11,3 +12,5 @@ src/pathweaver/environment/__init__.py
 src/pathweaver/environment/item_placement.py
 src/pathweaver/environment/map_loader.py
 src/pathweaver/environment/path_generator.py
+src/pathweaver/simulation/__init__.py
+src/pathweaver/simulation/recorder.py
